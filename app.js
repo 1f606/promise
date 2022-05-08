@@ -9,3 +9,11 @@ const promise = new MyPromise(resolve => {
 promise.then(value => {
   console.log(value);
 });
+
+promise.then(value => {
+  console.log(value);
+});
+
+promise.then(value => {
+  console.log(value);
+});
