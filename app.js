@@ -1,19 +1,20 @@
 const MyPromise = require('./MyPromise');
 
 const promise = new MyPromise(resolve => {
-  setTimeout(() => {
+  // setTimeout(() => {
     resolve(2);
-  }, 2000)
+  // }, 2000)
 });
 
 promise.then(value => {
   console.log(value);
-});
-
-promise.then(value => {
+  return createPromise();
+}).then(value => {
   console.log(value);
 });
 
-promise.then(value => {
-  console.log(value);
-});
+function createPromise () {
+  return new MyPromise(resolve => {
+    resolve('new');
+  })
+}

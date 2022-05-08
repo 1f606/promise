@@ -2,6 +2,14 @@ const PENDING = 'pending';
 const FULFILLED = 'fulfilled';
 const REJECTED = 'rejected';
 
+function handlePromiseResult (result, resolve, reject) {
+  if (result instanceof MyPromise) {
+    result.then(resolve, reject);
+  } else {
+    resolve(result);
+  }
+}
+
 class MyPromise {
   constructor(executor) {
     executor(this.resolve, this.reject);
@@ -25,15 +33,18 @@ class MyPromise {
     while (this.failCallback.length) this.failCallback.shift()(this.reason);
   }
   then (successCb, failCb) {
-    if (this.status === FULFILLED) {
-      successCb(this.value);
-    } else if (this.status === REJECTED) {
-      failCb(this.reason);
-    } else {
-      // pending
-      this.successCallback.push(successCb);
-      this.failCallback.push(failCb);
-    }
+    return new MyPromise((resolve, reject) => {
+      if (this.status === FULFILLED) {
+        const result = successCb(this.value);
+        handlePromiseResult(result, resolve, reject);
+      } else if (this.status === REJECTED) {
+        reject(failCb(this.reason));
+      } else {
+        // pending
+        successCb && this.successCallback.push(successCb);
+        failCb && this.failCallback.push(failCb);
+      }
+    })
   }
 }
 
