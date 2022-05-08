@@ -1,7 +1,9 @@
 const MyPromise = require('./MyPromise');
 
 const promise = new MyPromise(resolve => {
-  resolve(2);
+  setTimeout(() => {
+    resolve(2);
+  }, 2000)
 });
 
 promise.then(value => {
