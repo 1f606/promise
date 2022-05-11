@@ -83,6 +83,43 @@ class MyPromise {
     });
     return newPromise;
   }
+  catch (callback) {
+    return this.then(undefined, callback);
+  }
+  finally (callback) {
+    return this.then(value => {
+      return MyPromise.resolve(callback()).then(() => value);
+    }, error => {
+      return MyPromise.resolve(callback()).then(() => { throw error; })
+    });
+  }
+  static all (array) {
+    return new MyPromise((resolve, reject) => {
+      const result = [];
+      let nums = 0;
+      function addData (index, data) {
+        result[index] = data;
+        nums++;
+        if (nums === array.length) {
+          resolve(result);
+        }
+      }
+      for (let i = 0; i < array.length; i++) {
+        if (array[i] instanceof MyPromise) {
+          array[i].then(res => addData(i, res), err => addData(i, err));
+        } else {
+          addData(i, array[i]);
+        }
+      }
+    });
+  }
+  static resolve(value) {
+    if (value instanceof MyPromise) {
+      return value;
+    } else {
+      return new MyPromise(resolve => resolve(value));
+    }
+  }
 }
 
 module.exports = MyPromise;
