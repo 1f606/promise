@@ -2,7 +2,8 @@ const PENDING = 'pending';
 const FULFILLED = 'fulfilled';
 const REJECTED = 'rejected';
 
-function handlePromiseResult (result, resolve, reject) {
+function handlePromiseResult (newPromise, result, resolve, reject) {
+  if (newPromise === result) return reject(new TypeError('Chaining cycle detected for promise #<Promise>'));
   if (result instanceof MyPromise) {
     result.then(resolve, reject);
   } else {
@@ -12,7 +13,11 @@ function handlePromiseResult (result, resolve, reject) {
 
 class MyPromise {
   constructor(executor) {
-    executor(this.resolve, this.reject);
+    try {
+      executor(this.resolve, this.reject);
+    } catch (e) {
+      this.reject(e);
+    }
     // 在这里定义实例属性，resolve方法不会执行
   }
   status = PENDING;
@@ -24,27 +29,59 @@ class MyPromise {
     if (this.status !== PENDING) return;
     this.status = FULFILLED;
     this.value = value;
-    while (this.successCallback.length) this.successCallback.shift()(this.value);
+    while (this.successCallback.length) this.successCallback.shift()();
   }
   reject = reason => {
     if (this.status !== PENDING) return;
     this.status = REJECTED;
     this.reason = reason;
-    while (this.failCallback.length) this.failCallback.shift()(this.reason);
+    while (this.failCallback.length) this.failCallback.shift()();
   }
-  then (successCb, failCb) {
-    return new MyPromise((resolve, reject) => {
+  then (successCb = value => value, failCb = reason => {throw reason}) {
+    const newPromise = new MyPromise((resolve, reject) => {
       if (this.status === FULFILLED) {
-        const result = successCb(this.value);
-        handlePromiseResult(result, resolve, reject);
+        setTimeout(() => {
+          try {
+            const result = successCb(this.value);
+            handlePromiseResult(newPromise, result, resolve, reject);
+          } catch (e) {
+            reject(e);
+          }
+        }, 0);
       } else if (this.status === REJECTED) {
-        reject(failCb(this.reason));
+        setTimeout(() => {
+          try {
+            const result = failCb(this.reason);
+            handlePromiseResult(newPromise, result, resolve, reject);
+          } catch (e) {
+            reject(e);
+          }
+        }, 0);
       } else {
         // pending
-        successCb && this.successCallback.push(successCb);
-        failCb && this.failCallback.push(failCb);
+        successCb && this.successCallback.push(() => {
+          setTimeout(() => {
+            try {
+              const result = successCb(this.value);
+              handlePromiseResult(newPromise, result, resolve, reject);
+            } catch (e) {
+              reject(e);
+            }
+          }, 0);
+        });
+        failCb && this.failCallback.push(() => {
+          setTimeout(() => {
+            try {
+              const result = failCb(this.reason);
+              handlePromiseResult(newPromise, result, resolve, reject);
+            } catch (e) {
+              reject(e);
+            }
+          }, 0);
+        });
       }
-    })
+    });
+    return newPromise;
   }
 }
 
